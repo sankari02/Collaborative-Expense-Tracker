@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settlement - Expense Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Menu</h2>
+        <ul>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/expenses">Expenses History</a></li>
+            <li><a href="/collaboration">Collaboration</a></li>
+            <li><a href="/settle">Settle Up</a></li>
+        </ul>
+        <button id="dark-mode-toggle">Dark Mode</button>
+    </div>
+    <div class="main-content">
+        <header>
+            <h1>Settle Up</h1>
+            <a href="/collaboration" class="back-btn">← Back to Collaboration</a>
+        </header>
+        
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+        
+        {% if success %}
+        <div class="success-message">{{ success }}</div>
+        {% endif %}
+        
+        {% if settlements %}
+        <div class="settlements-section">
+            <h2>Pending Settlements</h2>
+            <div class="settlements-list">
+                {% for settlement in settlements %}
+                <div class="settlement-card {% if settlement.paid %}settled{% endif %}">
+                    <div class="settlement-info">
+                        <p class="settlement-amount">
+                            <strong>{{ settlement.from_person }}</strong> owes 
+                            <strong>{{ settlement.to_person }}</strong>: 
+                            <span class="amount">₹{{ settlement.amount }}</span>
+                        </p>
+                        <p class="settlement-expense">For: {{ settlement.expense_name }}</p>
+                    </div>
+                    <div class="settlement-action">
+                        {% if settlement.paid %}
+                        <span class="settled-badge">✅ Settled</span>
+                        {% else %}
+                        <form action="/mark_paid" method="POST">
+                            <input type="hidden" name="from_person" value="{{ settlement.from_person }}">
+                            <input type="hidden" name="to_person" value="{{ settlement.to_person }}">
+                            <input type="hidden" name="amount" value="{{ settlement.amount }}">
+                            <input type="hidden" name="expense_name" value="{{ settlement.expense_name }}">
+                            <button type="submit" class="btn btn-settle">Mark as Paid</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="no-settlements">
+            <p>No pending settlements! Everyone is even.</p>
+        </div>
+        {% endif %}
+        
+        {% if summary %}
+        <div class="summary-section">
+            <h2>Expense Summary</h2>
+            <table class="summary-table">
+                <thead>
+                    <tr>
+                        <th>Person</th>
+                        <th>Total Spent</th>
+                        <th>Fair Share</th>
+                        <th>Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for person, data in summary.items() %}
+                    <tr>
+                        <td>{{ person }}</td>
+                        <td>₹{{ data.total_spent }}</td>
+                        <td>₹{{ data.fair_share }}</td>
+                        <td class="{% if data.balance > 0 %}positive{% elif data.balance < 0 %}negative{% else %}neutral{% endif %}">
+                            {% if data.balance > 0 %}Gets back ₹{{ data.balance }}{% elif data.balance < 0 %}Owes ₹{{ data.balance|abs }}{% else %}Even{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+    
+    <script>
+        const toggle = document.getElementById('dark-mode-toggle');
+        toggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+        });
+    </script>
+</body>
+</html>

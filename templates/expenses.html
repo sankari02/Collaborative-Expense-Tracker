@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expenses History</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Menu</h2>
+        <ul>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/expenses">Expenses History</a></li>
+            <li><a href="/collaboration">Collaboration</a></li>
+            <li><a href="/prediction">Prediction</a></li>
+        </ul>
+        <button id="dark-mode-toggle">Dark Mode</button>
+    </div>
+    <div class="main-content">
+        <header>
+            <h1>Expenses History</h1>
+        </header>
+        <div class="expense-history">
+            <a href="/add" class="add-expense-btn">Add Expense</a>
+            {% if expenses %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Amount</th>
+                        <th>Category</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for exp in expenses %}
+                    <tr>
+                        <td>{{ exp.name }}</td>
+                        <td>₹{{ exp.amount }}</td>
+                        <td><span class="badge {{ exp.category.lower() }}">{{ exp.category }}</span></td>
+                        <td>{{ exp.date }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="no-data">No expenses recorded yet. <a href="/add">Add your first expense!</a></p>
+            {% endif %}
+        </div>
+    </div>
+    <script>
+        const toggle = document.getElementById('dark-mode-toggle');
+        toggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+        });
+    </script>
+</body>
+</html>

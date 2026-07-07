@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settlement</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .settlement-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .settlement-panel {
+            background: #fff;
+            border-radius: 12px;
+            padding: 22px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .settlement-panel h2 {
+            margin-bottom: 12px;
+            color: #111827;
+        }
+
+        .settlement-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .settlement-meta div {
+            background: #f3f4f6;
+            border-radius: 8px;
+            padding: 12px;
+            color: #1f2937;
+        }
+
+        .settlement-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        .settlement-table th,
+        .settlement-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+            color: #1f2937;
+        }
+
+        .settlement-table th {
+            background: #f9fafb;
+            color: #111827;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+
+        .settlement-table tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .status-paid {
+            color: #15803d;
+            font-weight: 700;
+        }
+
+        .status-pending {
+            color: #b45309;
+            font-weight: 700;
+        }
+
+        .empty-settlement {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 16px;
+            color: #4b5563;
+        }
+
+        .btn-small {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+            background: #28a745;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .btn-small:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Menu</h2>
+        <ul>
+            <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li><a href="{{ url_for('expenses') }}">Expenses History</a></li>
+            <li><a href="{{ url_for('collaboration') }}">Collaboration</a></li>
+            <li><a href="{{ url_for('plans') }}">Your Plans</a></li>
+            <li><a href="{{ url_for('prediction') }}">Prediction</a></li>
+        </ul>
+        <button id="dark-mode-toggle">Dark Mode</button>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <h1>Settlement / Settle Up</h1>
+            <a href="{{ url_for('collaboration') }}" class="back-btn">Back to Collaboration</a>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="{{ 'success-message' if category == 'success' else 'error-message' }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% if group_reports %}
+        <div class="settlement-grid">
+            {% for report in group_reports %}
+            <section class="settlement-panel">
+                <h2>{{ report.group_name }}</h2>
+                <div class="settlement-meta">
+                    <div><strong>Members</strong><br>{{ report.members|join(', ') if report.members else 'No members recorded' }}</div>
+                    <div><strong>Total Expenses</strong><br>₹{{ report.total_expenses|round(2) }}</div>
+                    <div><strong>Who Paid</strong><br>{{ report.paid_by }}</div>
+                    <div><strong>Each Share</strong><br>₹{{ report.share|round(2) }}</div>
+                </div>
+
+                {% if report.summary %}
+                <h3>Amount Each Person Should Pay / Receive</h3>
+                <table class="settlement-table">
+                    <thead>
+                        <tr>
+                            <th>Person</th>
+                            <th>Total Paid</th>
+                            <th>Fair Share</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for person, data in report.summary.items() %}
+                        <tr>
+                            <td>{{ person }}</td>
+                            <td>₹{{ data.total_spent|round(2) }}</td>
+                            <td>₹{{ data.fair_share|round(2) }}</td>
+                            <td>
+                                {% if data.balance > 0 %}
+                                Should receive ₹{{ data.balance|round(2) }}
+                                {% elif data.balance < 0 %}
+                                Should pay ₹{{ (data.balance * -1)|round(2) }}
+                                {% else %}
+                                Settled
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+
+                <h3 style="margin-top: 18px;">Who Owes Whom</h3>
+                {% if report.settlements %}
+                <table class="settlement-table">
+                    <thead>
+                        <tr>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in report.settlements %}
+                        <tr>
+                            <td>{{ item.from_person }}</td>
+                            <td>{{ item.to_person }}</td>
+                            <td>₹{{ item.amount|round(2) }}</td>
+                            <td>
+                                {% if item.paid %}
+                                <span class="status-paid">Paid</span>
+                                {% else %}
+                                <span class="status-pending">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.paid %}
+                                <span class="status-paid">Paid</span>
+                                {% else %}
+                                <form action="{{ url_for('mark_settlement_paid') }}" method="POST">
+                                    <input type="hidden" name="settlement_id" value="{{ item.settlement_id }}">
+                                    <input type="hidden" name="from_person" value="{{ item.from_person }}">
+                                    <input type="hidden" name="to_person" value="{{ item.to_person }}">
+                                    <input type="hidden" name="amount" value="{{ item.amount }}">
+                                    <input type="hidden" name="expense_name" value="{{ item.expense_name }}">
+                                    <input type="hidden" name="group_name" value="{{ item.group_name }}">
+                                    <button type="submit" class="btn-small">Mark as Paid</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-settlement">No payer has been recorded for this trip yet, so there is nothing to settle.</div>
+                {% endif %}
+            </section>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-settlements">
+            <p>No group expenses found yet. Add a shared expense with payer and members to calculate settlement.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        const toggle = document.getElementById('dark-mode-toggle');
+        toggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+        });
+    </script>
+</body>
+</html>

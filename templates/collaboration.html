@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaboration</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .budget-alert {
+            margin: 12px 0;
+            padding: 10px;
+            border-radius: 8px;
+            color: #111827;
+            border-left: 5px solid #22c55e;
+            background: #dcfce7;
+            text-align: left;
+        }
+
+        .budget-alert.warning {
+            border-left-color: #f59e0b;
+            background: #fef3c7;
+        }
+
+        .budget-alert.danger {
+            border-left-color: #dc2626;
+            background: #fee2e2;
+        }
+
+        .budget-alert strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Menu</h2>
+        <ul>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/expenses">Expenses History</a></li>
+            <li><a href="/collaboration">Collaboration</a></li>
+            <li><a href="/prediction">Prediction</a></li>
+        </ul>
+        <button id="dark-mode-toggle">Dark Mode</button>
+    </div>
+    <div class="main-content">
+        <header>
+            <h1>Collaboration</h1>
+        </header>
+        
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+        
+        {% if success %}
+        <div class="success-message">{{ success }}</div>
+        {% endif %}
+        
+        <div class="collaboration-section">
+            <div class="card">
+                <h3>Share Expenses</h3>
+                <p>Collaborate with others by sharing your expense data.</p>
+                <button class="btn" id="inviteBtn">Invite Collaborator</button>
+            </div>
+            <div class="card">
+                <h3>Group Expenses</h3>
+                <p>Track shared expenses with friends or family.</p>
+                <button class="btn" id="createGroupBtn">Create Group</button>
+            </div>
+            <div class="card">
+                <h3>Settlement</h3>
+                <p>Calculate who owes whom and settle up easily.</p>
+                <a href="{{ url_for('settlement') }}" class="btn">Settle Up</a>
+            </div>
+        </div>
+        
+        <!-- Display Created Groups -->
+        {% if groups %}
+        <div class="groups-section">
+            <h2>Your Groups</h2>
+            <div class="groups-grid">
+                {% for group in groups %}
+                <div class="group-card">
+                    {% if group.profile_image %}
+                    <img src="{{ url_for('static', filename='uploads/' + group.profile_image) }}" alt="Group Image" class="group-image">
+                    {% else %}
+                    <div class="group-image-placeholder">No Image</div>
+                    {% endif %}
+                    <h3>{{ group.group_name }}</h3>
+                    <p><strong>Members:</strong> {{ group.members|join(', ') }}</p>
+                    {% set budget = budget_statuses[loop.index0] %}
+                    <div class="budget-alert {{ budget.level }}">
+                        <strong>{{ budget.message }}</strong>
+                        <span>Spent: ₹{{ budget.spent|int }} / Budget: ₹{{ budget.budget|int }}</span>
+                    </div>
+                    <p><a href="{{ url_for('group_chat', group_id=loop.index0) }}" class="btn">Open Chat</a></p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Modal for Invite Collaborator -->
+    <div id="inviteModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="inviteClose">&times;</span>
+            <h2>Invite Collaborator</h2>
+            <form action="/invite" method="POST">
+                <div class="form-group">
+                    <label for="collab_name">Collaborator Name:</label>
+                    <input type="text" id="collab_name" name="collab_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone Number:</label>
+                    <input type="tel" id="phone" name="phone" placeholder="+1234567890" required>
+                </div>
+                <button type="submit" class="btn">Send Invite</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Create Group -->
+    <div id="createGroupModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="createGroupClose">&times;</span>
+            <h2>Create New Group</h2>
+            <form action="/create_group" method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="group_name">Group Name:</label>
+                    <input type="text" id="group_name" name="group_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="members">Member Names (comma separated):</label>
+                    <input type="text" id="members" name="members" placeholder="John, Jane, Bob" required>
+                </div>
+                <div class="form-group">
+                    <label for="profile_image">Group Profile Picture:</label>
+                    <input type="file" id="profile_image" name="profile_image" accept="image/*">
+                </div>
+                <button type="submit" class="btn">Create Group</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const toggle = document.getElementById('dark-mode-toggle');
+        toggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+        });
+
+        // Invite Modal functionality
+        const inviteModal = document.getElementById('inviteModal');
+        const inviteBtn = document.getElementById('inviteBtn');
+        const inviteClose = document.getElementById('inviteClose');
+
+        inviteBtn.onclick = function() {
+            inviteModal.style.display = "block";
+        }
+
+        inviteClose.onclick = function() {
+            inviteModal.style.display = "none";
+        }
+
+        // Create Group Modal functionality
+        const createGroupModal = document.getElementById('createGroupModal');
+        const createGroupBtn = document.getElementById('createGroupBtn');
+        const createGroupClose = document.getElementById('createGroupClose');
+
+        createGroupBtn.onclick = function() {
+            createGroupModal.style.display = "block";
+        }
+
+        createGroupClose.onclick = function() {
+            createGroupModal.style.display = "none";
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target == inviteModal) {
+                inviteModal.style.display = "none";
+            }
+            if (event.target == createGroupModal) {
+                createGroupModal.style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>

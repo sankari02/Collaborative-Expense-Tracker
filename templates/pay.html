@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <title>Document</title>
+</head>
+<body>
+    
+<script type="module">
+
+    let PayData = localStorage.getItem('payData');
+    let payment = JSON.parse(PayData);
+
+    console.log(`The user payment amount is ${payment.userPayAmount}`);
+
+function moveToHomePage(){
+    location.replace("/myExpense")
+}
+    
+var options = {
+    "key": "rzp_test_fSlbXLUCG7F6Ng", 
+    "amount": payment.userPayAmount*100, 
+    "currency": "INR",
+    "name": "Expense", 
+    "description": "Test Transaction",
+    "image": "https://example.com/your_logo",
+  
+    "handler": function (response){
+        moveToHomePage()
+    },
+    "prefill": {
+        "name": "Expense", 
+        "email": "expense@gmail.com",
+        "contact": "789546321"
+    },
+    "notes": {
+        "address": "Razorpay Corporate Office"
+    },
+    "theme": {
+        "color": "#e4f007"
+    }
+};
+
+
+var rzp1 = new Razorpay(options);
+rzp1.on('payment.failed', function (response){
+        alert(response.error.code);
+        alert(response.error.description);
+        alert(response.error.source);
+        alert(response.error.step);
+        alert(response.error.reason);
+        alert(response.error.metadata.order_id);
+        alert(response.error.metadata.payment_id);
+});
+
+
+rzp1.open();
+e.preventDefault();
+
+</script>
+</body>
+</html>
